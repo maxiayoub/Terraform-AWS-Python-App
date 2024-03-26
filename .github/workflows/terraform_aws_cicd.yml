@@ -44,8 +44,8 @@ jobs:
       - name: Terraform Plan
         run: terraform plan
 
-      - name: terraform destroy
-        run: terraform destroy --auto-approve  
+      #- name: terraform destroy
+       # run: terraform destroy --auto-approve  
       
       - name: Terraform Apply
         run: terraform apply --auto-approve
@@ -102,8 +102,8 @@ jobs:
 
       - name: Deploy Application to EC2
         run: |
-          scp -r my_package ec2-user@${{ needs.buildt.outputs.instance_public_ip }}:/home/ec2-user/
-          ssh ec2-user@${{ needs.buildt.outputs.instance_public_ip }} "cd /home/ec2-user/my_package && python app.py"
+          scp -r my_package ec2-user@3.80.232.6:/home/ec2-user/
+          ssh ec2-user@3.80.232.6 "cd /home/ec2-user/my_package && python app.py"
 
       - name: Lint with pylint
         run: |
