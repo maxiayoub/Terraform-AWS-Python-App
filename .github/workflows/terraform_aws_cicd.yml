@@ -12,7 +12,6 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
   SSH_KEY_PATH: ${{ secrets.SSH_KEY_PATH }}
-  EC2_PUBLIC_IP: "44.211.144.45"
   APP_PATH: 'my_package'
 
 jobs:
@@ -51,10 +50,14 @@ jobs:
       - name: Terraform Apply
         run: terraform apply --auto-approve
 
+      - name: Get EC2 Public IP
+        id: get_ip
+        run: echo "::set-output name=ec2_public_ip::$(terraform output -raw ec2_public_ip)"
 
 
-  test-and-package:
-    name: test and app deployment
+
+  deploy:
+    name: Deploy Application
     needs: buildt
     runs-on: ubuntu-latest
 
@@ -91,11 +94,16 @@ jobs:
           python -m unittest discover -s my_package/tests -p 'test_*.py'
 
 
-      - name: Run Application
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY_PATH }}
+
+      - name: Deploy Application to EC2
         run: |
-          chmod +x deploy.sh
-          ./deploy.sh
-      
+          scp -i ${{ secrets.SSH_KEY_PATH }} -r my_package ec2-user@${{ needs.buildt.outputs.ec2_public_ip }}:/home/ec2-user/
+          ssh -i ${{ secrets.SSH_KEY_PATH }} ec2-user@${{ needs.buildt.outputs.ec2_public_ip }} "cd /home/ec2-user/my_package && python app.py"
+
       - name: Lint with pylint
         run: |
           pip install pylint
