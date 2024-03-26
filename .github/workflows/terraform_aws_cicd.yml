@@ -98,11 +98,11 @@ jobs:
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY_PATH }}
+          ssh-private-key: |
+              ${{ secrets.SSH_KEY_PATH }}
 
       - name: Deploy Application to EC2
         run: |
-          echo "${{ secrets.SSH_KEY_PATH }}" | ssh-add -
           scp -r my_package ec2-user@${{ needs.buildt.outputs.ec2_public_ip }}:/home/ec2-user/
           ssh ec2-user@${{ needs.buildt.outputs.ec2_public_ip }} "cd /home/ec2-user/my_package && python app.py"
 
