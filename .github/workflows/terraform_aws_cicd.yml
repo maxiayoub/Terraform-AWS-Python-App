@@ -43,6 +43,9 @@ jobs:
       
       - name: Terraform Plan
         run: terraform plan
+
+      - name: terraform destroy
+        run: terraform destroy --auto-approve  
       
       - name: Terraform Apply
         run: terraform apply --auto-approve
@@ -53,6 +56,7 @@ jobs:
 
   test-and-package:
     name: test and app deployment
+    needs: buildt
     runs-on: ubuntu-latest
 
     env:
