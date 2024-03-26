@@ -52,7 +52,7 @@ jobs:
 
       - name: Get EC2 Public IP
         id: get_ip
-        run: echo "::set-output name=ec2_public_ip::$(terraform output -raw instance_public_ip)"
+        run: echo "::set-output name=instance_public_ip::$(terraform output -raw instance_public_ip)"
         # This command retrieves the EC2 instance's public IP address using Terraform output and sets it as an output variable.
 
 
