@@ -102,8 +102,8 @@ jobs:
 
       - name: Deploy Application to EC2
         run: |
-          echo "${{ secrets.SSH_KEY_PATH }}" | ssh-add -
-          scp -r my_package ec2-user@3.80.232.6:/home/ec2-user/
+          echo "${{ secrets.SSH_KEY_PATH }}" >> key.pem
+          scp -i key.pem my_package ec2-user@3.80.232.6:/home/ec2-user/
           ssh ec2-user@3.80.232.6 "cd /home/ec2-user/my_package && python app.py"
 
       - name: Lint with pylint
