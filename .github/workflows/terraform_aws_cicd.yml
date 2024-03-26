@@ -102,6 +102,7 @@ jobs:
 
       - name: Deploy Application to EC2
         run: |
+          echo "${{ secrets.SSH_KEY_PATH }}" | ssh-add -
           scp -r my_package ec2-user@3.80.232.6:/home/ec2-user/
           ssh ec2-user@3.80.232.6 "cd /home/ec2-user/my_package && python app.py"
 
