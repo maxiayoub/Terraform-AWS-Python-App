@@ -1,0 +1,116 @@
+name: Terraform_AWS_Python_App
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to Development or Production'
+        required: true
+        default: '' # Default value, change as needed
+  
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+  SSH_KEY_PATH: ${{ secrets.SSH_KEY_PATH }}
+  APP_PATH: 'my_package'
+
+jobs:
+  
+  buildt:
+    name: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+    steps:
+       
+      - name: Checkout
+        uses: actions/checkout@v2
+       
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+      
+      - name: Authenticate with AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.TF_VAR_aws_region }}
+      
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Plan
+        run: terraform plan
+      
+      - name: Terraform Apply
+        run: terraform apply --auto-approve
+
+
+
+
+
+  test-and-package:
+    name: test and app deployment
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: '3.x'
+      REQUIREMENTS_FILE: 'requirements.txt'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+      
+      - name: Install dependencies
+        run: |
+          pip install -r ${{ env.REQUIREMENTS_FILE }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s my_package/tests -p 'test_*.py'
+
+      - name: Get EC2 Public IP
+        run: |
+          EC2_PUBLIC_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].[PublicIpAddress]' --output text)
+          echo "EC2 Public IP: $EC2_PUBLIC_IP"
+        id: get_ip
+
+      - name: Run Application
+        run: |
+          chmod +x deploy.sh
+          ./deploy.sh
+      
+      - name: Lint with pylint
+        run: |
+          pip install pylint
+          pylint my_package/main.py
+
+      - name: Build package
+        run: |
+          python setup.py sdist bdist_wheel
+          mkdir artifacts
+          mv dist/* artifacts/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: my_flask_app_package
+          path: artifacts/
