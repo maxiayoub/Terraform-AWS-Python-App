@@ -94,7 +94,12 @@ jobs:
         run: |
           python -m unittest discover -s my_package/tests -p 'test_*.py'
 
-
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY_PATH }}" > ~/.ssh/key.pem 
+          chmod 600 ~/.ssh/key.pem
+          
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
@@ -102,9 +107,11 @@ jobs:
 
       - name: Deploy Application to EC2
         run: |
-          echo "${{ secrets.SSH_KEY_PATH }}" >> key.pem
-          scp -i key.pem my_package ec2-user@3.80.232.6:/home/ec2-user/
-          ssh ec2-user@3.80.232.6 "cd /home/ec2-user/my_package && python app.py"
+          ssh-keyscan -H 3.80.232.6 >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/key.pem -r * ec2-user@3.80.232.6:/home/ec2-user/
+          ssh -i ~/.ssh/key.pem ec2-user@3.80.232.6 << EOF
+            cd /home/ec2-user/my_package && python app.py
+          EOF
 
       - name: Lint with pylint
         run: |
