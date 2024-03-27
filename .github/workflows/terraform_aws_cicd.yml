@@ -97,21 +97,26 @@ jobs:
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY_PATH }}" > ~/.ssh/key.pem 
+          echo "${{ env.SSH_KEY_PATH }}" > ~/.ssh/key.pem 
           chmod 600 ~/.ssh/key.pem
           
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY_PATH }}
+          ssh-private-key: ${{ env.SSH_KEY_PATH }}
 
-      
+      - name: Pre-warm SSH known_hosts
+        run: ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
+
+      - name: Copy files to EC2
+        run: scp -i ~/.ssh/key.pem -r * ec2-user@3.239.49.200:/home/ec2-user/
+        
       - name: Deploy Application to EC2
         run: |
-          ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
-          scp -i ~/.ssh/key.pem -r * ec2-user@3.239.49.200:/home/ec2-user/
           ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
-            cd /home/ec2-user/my_package && python app.py
+            cd /home/ec2-user/my_package/
+            chmod +x app.py
+            python app.py
           EOF
 
       - name: Lint with pylint
