@@ -109,14 +109,14 @@ jobs:
         run: ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
 
       - name: Copy files to EC2
-        run: scp -i ~/.ssh/key.pem -r * ec2-user@3.239.49.200:/home/ec2-user/
+        run: scp -i ~/.ssh/key.pem -r my_package ec2-user@3.239.49.200:/home/ec2-user/
         
       - name: Deploy Application to EC2
         run: |
           ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
             cd /home/ec2-user/my_package/
-            chmod +x app.py
-            python app.py
+            chmod +x main.py
+            python main.py
           EOF
 
       - name: Lint with pylint
