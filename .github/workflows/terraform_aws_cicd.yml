@@ -105,11 +105,12 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_KEY_PATH }}
 
+      
       - name: Deploy Application to EC2
         run: |
-          ssh-keyscan -H 3.80.232.6 >> ~/.ssh/known_hosts
-          scp -i ~/.ssh/key.pem -r * ec2-user@3.80.232.6:/home/ec2-user/
-          ssh -i ~/.ssh/key.pem ec2-user@3.80.232.6 << EOF
+          ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/key.pem -r * ec2-user@3.239.49.200:/home/ec2-user/
+          ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
             cd /home/ec2-user/my_package && python app.py
           EOF
 
