@@ -51,26 +51,10 @@ jobs:
         run: |
            python -m unittest discover -s my_package/tests -p 'test_*.py'
   
-      #- name: Install SSH key
-       # run: |
-        #  mkdir -p ~/.ssh
-         # echo "${{ env.SSH_KEY_PATH }}" > ~/.ssh/key.pem 
-          #chmod 600 ~/.ssh/key.pem
-          
-      #- name: Set up SSH
-       # uses: webfactory/ssh-agent@v0.5.3
-        #with:
-         # ssh-private-key: ${{ env.SSH_KEY_PATH }}
-  
-      #- name: Pre-warm SSH known_hosts
-       # run: ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
-  
-      #- name: Copy files to EC2
-       # run: scp -i ~/.ssh/key.pem -r my_package ec2-user@3.239.49.200:/home/ec2-user/
           
       #- name: Deploy Application to EC2
-       # run: |
-        #  ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
+        #run: |
+         # ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
          # cd /home/ec2-user/my_package/
           #chmod +x main.py
           #python main.py
