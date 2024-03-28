@@ -15,51 +15,8 @@ env:
   APP_PATH: 'my_package'
 
 jobs:
-  
-  buildt:
-    name: build
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    env:
-      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
-    steps:
-       
-      - name: Checkout
-        uses: actions/checkout@v2
-       
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-      
-      - name: Authenticate with AWS
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.TF_VAR_aws_region }}
-      
-      - name: Terraform Init
-        run: terraform init
-      
-      - name: Terraform Plan
-        run: terraform plan
-
-      #- name: terraform destroy
-       # run: terraform destroy --auto-approve  
-      
-      - name: Terraform Apply
-        run: terraform apply --auto-approve
-
-      - name: Get EC2 Public IP
-        id: get_ip
-        run: echo "::set-output name=instance_public_ip::$(terraform output -raw instance_public_ip)"
-        # This command retrieves the EC2 instance's public IP address using Terraform output and sets it as an output variable.
-
-
-
-  deploy:
+  build:
     name: Deploy Application
-    needs: buildt
     runs-on: ubuntu-latest
 
     env:
@@ -79,7 +36,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-      
+        
       - name: Install dependencies
         run: |
           pip install -r ${{ env.REQUIREMENTS_FILE }}
@@ -87,51 +44,105 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-
+           path: ~/.cache/pip
+           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+  
       - name: Run tests
         run: |
-          python -m unittest discover -s my_package/tests -p 'test_*.py'
-
-      - name: Install SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ env.SSH_KEY_PATH }}" > ~/.ssh/key.pem 
-          chmod 600 ~/.ssh/key.pem
+           python -m unittest discover -s my_package/tests -p 'test_*.py'
+  
+      #- name: Install SSH key
+       # run: |
+        #  mkdir -p ~/.ssh
+         # echo "${{ env.SSH_KEY_PATH }}" > ~/.ssh/key.pem 
+          #chmod 600 ~/.ssh/key.pem
           
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ env.SSH_KEY_PATH }}
-
-      - name: Pre-warm SSH known_hosts
-        run: ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
-
-      - name: Copy files to EC2
-        run: scp -i ~/.ssh/key.pem -r my_package ec2-user@3.239.49.200:/home/ec2-user/
-        
-      - name: Deploy Application to EC2
-        run: |
-          ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
-            cd /home/ec2-user/my_package/
-            chmod +x main.py
-            python main.py
-          EOF
+      #- name: Set up SSH
+       # uses: webfactory/ssh-agent@v0.5.3
+        #with:
+         # ssh-private-key: ${{ env.SSH_KEY_PATH }}
+  
+      #- name: Pre-warm SSH known_hosts
+       # run: ssh-keyscan -H 3.239.49.200 >> ~/.ssh/known_hosts
+  
+      #- name: Copy files to EC2
+       # run: scp -i ~/.ssh/key.pem -r my_package ec2-user@3.239.49.200:/home/ec2-user/
+          
+      #- name: Deploy Application to EC2
+       # run: |
+        #  ssh -i ~/.ssh/key.pem ec2-user@3.239.49.200 << EOF
+         # cd /home/ec2-user/my_package/
+          #chmod +x main.py
+          #python main.py
+           #EOF
 
       - name: Lint with pylint
         run: |
           pip install pylint
           pylint my_package/main.py
-
+  
       - name: Build package
         run: |
           python setup.py sdist bdist_wheel
           mkdir artifacts
           mv dist/* artifacts/
-
+  
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: my_flask_app_package
           path: artifacts/
+          
+  infra:
+    name: Provision aws infrastructure using Terraform
+    runs-on: ubuntu-latest
+    outputs:
+      eip: ${{ steps.max.outputs.ec2_address }}
+    needs: [ build ]
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      
+    steps: 
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: my_flask_app_package
+          path: artifacts/
+       
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+      
+      - name: Authenticate with AWS
+        uses: aws-actions/configure-aws-credentials@v1
+      
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Plan
+        run: terraform plan
+
+      #- name: terraform destroy
+       # run: terraform destroy --auto-approve  
+      
+      - name: Terraform Apply
+        run: terraform apply --auto-approve
+
+      - name: Get Instance IP
+        id: max
+        run: |
+          terraform-bin output -raw eip_value > ip_address.txt
+          echo "ec2_address=$(cat ip_address.txt)" >> $GITHUB_OUTPUT
+
+      - name: copy file via ssh key
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ steps.max.outputs.ec2_address }}
+          username: ec2-user
+          port: 22
+          key: ${{ secrets.SSH_KEY_PATH }}
+          source: artifacts/
+          target: /home/ec2-user/app
