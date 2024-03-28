@@ -11,7 +11,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-  SSH_KEY_PATH: ${{ secrets.SSH_KEY_PATH }}
+  SSH_KEY_PATH: ${{ secrets.SSH_PRIVATE_KEY }}
   APP_PATH: 'my_package'
 
 jobs:
