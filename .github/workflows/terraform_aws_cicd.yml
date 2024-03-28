@@ -116,8 +116,8 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
       
-      - name: Authenticate with AWS
-        uses: aws-actions/configure-aws-credentials@v1
+      #- name: Authenticate with AWS
+       # uses: aws-actions/configure-aws-credentials@v1
       
       - name: Terraform Init
         run: terraform init
