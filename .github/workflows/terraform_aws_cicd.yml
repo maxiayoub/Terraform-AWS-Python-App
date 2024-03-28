@@ -143,6 +143,6 @@ jobs:
           host: ${{ steps.max.outputs.ec2_address }}
           username: ec2-user
           port: 22
-          key: ${{ secrets.SSH_KEY_PATH }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: artifacts/
           target: /home/ec2-user/app
