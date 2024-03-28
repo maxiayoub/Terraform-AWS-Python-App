@@ -134,7 +134,7 @@ jobs:
       - name: Get Instance IP
         id: max
         run: |
-          terraform-bin output -raw eip_value > ip_address.txt
+          terraform-bin output -raw instance_public_ip > ip_address.txt
           echo "ec2_address=$(cat ip_address.txt)" >> $GITHUB_OUTPUT
 
       - name: copy file via ssh key
